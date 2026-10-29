@@ -43,7 +43,7 @@
         const app = document.getElementById('app');
 
         if (shortCode) {
-            app.innerHTML = `<h2>Đang xử lý...</h2><p class="loading" style="display:block">Đang tìm link gốc cho mã: <b>${shortCode}</b></p>`;
+            app.innerHTML = `<h2>RITA Link đang chuyển hướng...</h2><p class="loading" style="display:block">Mã xử lý: <b>${shortCode}</b></p>`;
             
             fetch(`${GAS_WEB_APP_URL}?action=resolve&code=${encodeURIComponent(shortCode)}`)
                 .then(res => res.json())
