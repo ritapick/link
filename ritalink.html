@@ -4,10 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>✂ RitaLink</title>
+    
+    <!-- Open Graph Meta Tags (CHỈ VĂN BẢN, KHÔNG CÓ ẢNH ĐỂ TRÁNH KHUNG XÁM) -->
+    <meta property="og:title" content="✂ RitaLink - Rút gọn link miễn phí">
+    <meta property="og:description" content="Tạo link rút gọn chuyên nghiệp, bảo mật, tự động hết hạn sau 30 ngày.">
+    <meta property="og:url" content="https://ritapick.github.io/link/ritalink.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="RitaLink">
+    
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; }
         .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; text-align: center; }
-        h2 { margin-top: 0; color: #1a73e8; }
+        h2 { margin-top: 0; color: #1a73e8; font-size: 1.5rem; line-height: 1.4; }
         input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         input:focus, textarea:focus { outline: none; border-color: #1a73e8; }
         button { width: 100%; padding: 12px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
@@ -35,7 +43,7 @@
     <div id="toast" class="toast"></div>
 
     <script>
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-cpKzGUxNl6ggok793WdLSXZZkJEazHqEqKvA9uOJORr1AkVHoPqMx0jJePthZc0C/exec"; // ⚠️ Cập nhật URL nếu có thay đổi
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-cpKzGUxNl6ggok793WdLSXZZkJEazHqEqKvA9uOJORr1AkVHoPqMx0jJePthZc0C/exec";
         const BASE_URL = "https://ritapick.github.io/link/ritalink.html";
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -89,7 +97,6 @@
             btn.disabled = true;
             loading.style.display = "block";
 
-            // Gửi thêm baseUrl để GAS tự tạo Full Link ở Cột E
             fetch(GAS_WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({ url: urlInput, description: descInput, baseUrl: BASE_URL })
@@ -107,7 +114,7 @@
                         <a id="shortLinkDisplay" href="${finalShortLink}" target="_blank">${finalShortLink}</a>
                         <div class="action-buttons">
                             <button class="btn-action btn-copy" onclick="copyToClipboard('${finalShortLink}')">📋 Sao chép</button>
-                            <button class="btn-action btn-share" onclick="shareLink('${finalShortLink}', '${descInput || 'Xem link thú vị này'}')">🔗 Chia sẻ</button>
+                            <button class="btn-action btn-share" onclick="shareLink('${finalShortLink}', '${descInput}')">🔗 Chia sẻ</button>
                         </div>
                     `;
                     resultBox.style.display = "block";
@@ -138,11 +145,19 @@
         }
 
         function shareLink(url, text) {
+            // Định dạng lại văn bản chia sẻ cho đẹp mắt
+            const shareText = text ? `📝 ${text}\n\n🔗 ${url}` : `🔗 Xem link thú vị này:\n${url}`;
+            
             if (navigator.share) {
-                navigator.share({ title: 'RitaLink', text: text, url: url }).catch(console.log);
+                navigator.share({ 
+                    title: 'RitaLink', 
+                    text: shareText, 
+                    url: url 
+                }).catch(console.log);
             } else {
-                copyToClipboard(url);
-                showToast("💡 Trình duyệt không hỗ trợ chia sẻ, đã tự động sao chép!");
+                // Nếu trình duyệt không hỗ trợ share native (ví dụ PC), sẽ copy cả mô tả + link
+                copyToClipboard(shareText);
+                showToast("💡 Đã sao chép mô tả và link!");
             }
         }
 
