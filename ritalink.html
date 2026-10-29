@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RitaLink - Tạo & Chuyển hướng Link</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 450px; text-align: center; }
+        h2 { margin-top: 0; color: #1a73e8; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input:focus, textarea:focus { outline: none; border-color: #1a73e8; }
+        button { width: 100%; padding: 12px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        button:hover { background-color: #1557b0; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        .result-box { margin-top: 20px; padding: 15px; background: #e8f0fe; border-radius: 6px; display: none; word-break: break-all; }
+        .result-box a { color: #1a73e8; font-weight: bold; text-decoration: none; }
+        .error { color: #d93025; margin-top: 10px; display: none; }
+        .loading { display: none; margin-top: 10px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="app">
+        <!-- Nội dung sẽ được JavaScript tự động điền tùy theo chế độ -->
+    </div>
+
+    <script>
+        // ============================================================
+        // ⚠️ CẤU HÌNH: Thay thế URL dưới đây bằng Web App URL của bạn
+        // ============================================================
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzL2dIDuzJAixlO1b-3aWOYbPlNjEsZf-WgNDbuSLrHAv4GifrY0FXuGrtCgA-QwM-H/exec";
+        const BASE_URL = "https://ritapick.github.io/link/ritalink.html";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const shortCode = urlParams.get('id');
+        const app = document.getElementById('app');
+
+        if (shortCode) {
+            // 🔄 CHẾ ĐỘ 2: CHUYỂN HƯỚNG (Redirect)
+            app.innerHTML = `<h2>Đang xử lý...</h2><p class="loading" style="display:block">Đang tìm link gốc cho mã: <b>${shortCode}</b></p>`;
+            
+            fetch(`${GAS_WEB_APP_URL}?action=resolve&code=${encodeURIComponent(shortCode)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "success" && data.url) {
+                        app.innerHTML = `<p>Đang chuyển hướng đến đích...</p>`;
+                        window.location.replace(data.url);
+                    } else {
+                        app.innerHTML = `<h2 style="color:#d93025">Lỗi</h2><p>Không tìm thấy link rút gọn này.</p><a href="${BASE_URL}" style="color:#1a73e8">← Quay lại trang tạo link</a>`;
+                    }
+                })
+                .catch(err => {
+                    app.innerHTML = `<h2 style="color:#d93025">Lỗi kết nối</h2><p>Vui lòng kiểm tra đường truyền hoặc thử lại sau.</p>`;
+                });
+        } else {
+            // 🛠️ CHẾ ĐỘ 1: GIAO DIỆN TẠO LINK (Creator UI)
+            app.innerHTML = `
+                <h2>✂️ RitaLink Shortener</h2>
+                <input type="url" id="originalUrl" placeholder="Dán link gốc vào đây (https://...)" required>
+                <textarea id="description" rows="2" placeholder="Mô tả ngắn gọn về link (tùy chọn)"></textarea>
+                <button id="submitBtn" onclick="createShortLink()">Tạo link rút gọn</button>
+                <p class="loading" id="loadingMsg">Đang xử lý...</p>
+                <p class="error" id="errorMsg"></p>
+                <div class="result-box" id="resultBox">
+                    <p>✅ Tạo thành công! Link rút gọn của bạn:</p>
+                    <a id="shortLinkDisplay" href="#" target="_blank"></a>
+                </div>
+            `;
+        }
+
+        function createShortLink() {
+            const urlInput = document.getElementById('originalUrl').value.trim();
+            const descInput = document.getElementById('description').value.trim();
+            const btn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loadingMsg');
+            const error = document.getElementById('errorMsg');
+            const resultBox = document.getElementById('resultBox');
+
+            if (!urlInput) {
+                error.textContent = "Vui lòng nhập link gốc!";
+                error.style.display = "block";
+                return;
+            }
+
+            // Ẩn lỗi cũ, hiện loading
+            error.style.display = "none";
+            resultBox.style.display = "none";
+            btn.disabled = true;
+            loading.style.display = "block";
+
+            // Gửi yêu cầu POST đến Google Apps Script
+            // Lưu ý: Không đặt header 'Content-Type': 'application/json' để tránh lỗi CORS preflight của GAS
+            fetch(GAS_WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ url: urlInput, description: descInput })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                loading.style.display = "none";
+
+                if (data.status === "success") {
+                    const finalShortLink = `${BASE_URL}?id=${data.code}`;
+                    document.getElementById('shortLinkDisplay').href = finalShortLink;
+                    document.getElementById('shortLinkDisplay').textContent = finalShortLink;
+                    resultBox.style.display = "block";
+                    
+                    // Reset form
+                    document.getElementById('originalUrl').value = "";
+                    document.getElementById('description').value = "";
+                } else {
+                    error.textContent = "Lỗi: " + (data.message || "Không thể tạo link");
+                    error.style.display = "block";
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                loading.style.display = "none";
+                error.textContent = "Lỗi kết nối đến máy chủ. Vui lòng thử lại.";
+                error.style.display = "block";
+                console.error(err);
+            });
+        }
+    </script>
+</body>
+</html>
