@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang chuyển hướng...</title>
+    
+    <!-- Thẻ meta mặc định (sẽ được JavaScript tự động ghi đè ngay lập tức) -->
+    <meta http-equiv="refresh" content="0; url=#">
+    
+    <script>
+        // ============================================================
+        // 📍 CHỈ CẦN THAY ĐỔI LINK DUY NHẤT TẠI DÒNG BÊN DƯỚI ĐÂY
+        // ============================================================
+        const TARGET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vROO0Ge750wllOMrLFP_WOIO1s0TwSP5R6GgUn18yYqFcxR_aExH1Xs4GBwZhzoc-4U8uuQz_TDHgec/pubhtml?gid=1922079158&single=true";
+
+        // 1. Tự động cập nhật thẻ meta refresh (đảm bảo tính tương thích tối đa)
+        const metaTag = document.querySelector('meta[http-equiv="refresh"]');
+        if (metaTag) {
+            metaTag.content = `0; url=${TARGET_URL}`;
+        }
+
+        // 2. Thực hiện chuyển hướng ngay lập tức (nhanh nhất, không lưu vào lịch sử trình duyệt)
+        window.location.replace(TARGET_URL);
+
+        // 3. Tự động gán link vào nút "nhấn vào đây" ở phần thân trang (dự phòng)
+        document.addEventListener("DOMContentLoaded", function() {
+            const fallbackLink = document.getElementById("fallback-link");
+            if (fallbackLink) {
+                fallbackLink.href = TARGET_URL;
+            }
+        });
+    </script>
+</head>
+<body>
+    <div style="text-align: center; margin-top: 50px; font-family: Arial, sans-serif; color: #333;">
+        <p>Đang chuyển hướng đến bảng tính...</p>
+        <p>Nếu trình duyệt không tự động chuyển hướng, vui lòng <a id="fallback-link" href="#" style="color: #1a73e8; text-decoration: none; font-weight: bold;">nhấn vào đây</a>.</p>
+    </div>
+</body>
+</html>
