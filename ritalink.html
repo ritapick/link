@@ -14,7 +14,6 @@
         button:hover { background-color: #1557b0; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
         
-        /* CSS cho khu vực kết quả và các nút mới */
         .result-box { margin-top: 20px; padding: 15px; background: #e8f0fe; border-radius: 8px; display: none; word-break: break-all; border: 1px solid #d2e3fc; }
         .result-box a { color: #1a73e8; font-weight: bold; text-decoration: none; display: block; margin-bottom: 15px; }
         .action-buttons { display: flex; gap: 10px; }
@@ -26,26 +25,17 @@
         
         .error { color: #d93025; margin-top: 10px; display: none; font-size: 14px; }
         .loading { display: none; margin-top: 10px; color: #666; font-size: 14px; }
-
-        /* Toast thông báo */
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #323232; color: white; padding: 12px 24px; border-radius: 25px; font-size: 14px; opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
 
-    <div class="container" id="app">
-        <!-- Nội dung sẽ được JavaScript tự động điền tùy theo chế độ -->
-    </div>
-
-    <!-- Phần tử Toast thông báo ẩn -->
+    <div class="container" id="app"></div>
     <div id="toast" class="toast"></div>
 
     <script>
-        // ============================================================
-        // ⚠️ CẤU HÌNH: Thay thế URL dưới đây bằng Web App URL của bạn
-        // ============================================================
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzL2dIDuzJAixlO1b-3aWOYbPlNjEsZf-WgNDbuSLrHAv4GifrY0FXuGrtCgA-QwM-H/exec";
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw-cpKzGUxNl6ggok793WdLSXZZkJEazHqEqKvA9uOJORr1AkVHoPqMx0jJePthZc0C/exec"; // ⚠️ Cập nhật URL nếu có thay đổi
         const BASE_URL = "https://ritapick.github.io/link/ritalink.html";
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -53,7 +43,6 @@
         const app = document.getElementById('app');
 
         if (shortCode) {
-            // 🔄 CHẾ ĐỘ 2: CHUYỂN HƯỚNG (Redirect)
             app.innerHTML = `<h2>Đang xử lý...</h2><p class="loading" style="display:block">Đang tìm link gốc cho mã: <b>${shortCode}</b></p>`;
             
             fetch(`${GAS_WEB_APP_URL}?action=resolve&code=${encodeURIComponent(shortCode)}`)
@@ -63,14 +52,13 @@
                         app.innerHTML = `<h2>✅ Thành công</h2><p>Đang chuyển hướng đến đích...</p>`;
                         window.location.replace(data.url);
                     } else {
-                        app.innerHTML = `<h2 style="color:#d93025">Lỗi</h2><p>Không tìm thấy link rút gọn này.</p><a href="${BASE_URL}" style="color:#1a73e8; text-decoration: none; font-weight: bold;">← Quay lại trang tạo link</a>`;
+                        app.innerHTML = `<h2 style="color:#d93025">Hết hạn hoặc Lỗi</h2><p>Link này không tồn tại hoặc đã quá 30 ngày và bị hệ thống tự động xóa.</p><a href="${BASE_URL}" style="color:#1a73e8; text-decoration: none; font-weight: bold;">← Quay lại trang tạo link</a>`;
                     }
                 })
                 .catch(err => {
-                    app.innerHTML = `<h2 style="color:#d93025">Lỗi kết nối</h2><p>Vui lòng kiểm tra đường truyền hoặc thử lại sau.</p>`;
+                    app.innerHTML = `<h2 style="color:#d93025">Lỗi kết nối</h2><p>Vui lòng kiểm tra đường truyền.</p>`;
                 });
         } else {
-            // 🛠️ CHẾ ĐỘ 1: GIAO DIỆN TẠO LINK (Creator UI)
             app.innerHTML = `
                 <h2>✂️ RitaLink Shortener</h2>
                 <input type="url" id="originalUrl" placeholder="Dán link gốc vào đây (https://...)" required>
@@ -78,9 +66,7 @@
                 <button id="submitBtn" onclick="createShortLink()">Tạo link rút gọn</button>
                 <p class="loading" id="loadingMsg">Đang xử lý, vui lòng chờ...</p>
                 <p class="error" id="errorMsg"></p>
-                <div class="result-box" id="resultBox">
-                    <!-- Nội dung kết quả sẽ được chèn vào đây -->
-                </div>
+                <div class="result-box" id="resultBox"></div>
             `;
         }
 
@@ -98,16 +84,15 @@
                 return;
             }
 
-            // Ẩn lỗi cũ, hiện loading
             error.style.display = "none";
             resultBox.style.display = "none";
             btn.disabled = true;
             loading.style.display = "block";
 
-            // Gửi yêu cầu POST đến Google Apps Script
+            // Gửi thêm baseUrl để GAS tự tạo Full Link ở Cột E
             fetch(GAS_WEB_APP_URL, {
                 method: "POST",
-                body: JSON.stringify({ url: urlInput, description: descInput })
+                body: JSON.stringify({ url: urlInput, description: descInput, baseUrl: BASE_URL })
             })
             .then(res => res.json())
             .then(data => {
@@ -115,24 +100,18 @@
                 loading.style.display = "none";
 
                 if (data.status === "success") {
-                    const finalShortLink = `${BASE_URL}?id=${data.code}`;
+                    const finalShortLink = data.fullUrl || `${BASE_URL}?id=${data.code}`;
                     
-                    // Hiển thị kết quả với 2 nút hành động
                     resultBox.innerHTML = `
-                        <p style="margin-top:0; color:#188038; font-weight:bold;">✅ Tạo thành công!</p>
+                        <p style="margin-top:0; color:#188038; font-weight:bold;">✅ Tạo thành công! (Hết hạn sau 30 ngày)</p>
                         <a id="shortLinkDisplay" href="${finalShortLink}" target="_blank">${finalShortLink}</a>
                         <div class="action-buttons">
-                            <button class="btn-action btn-copy" onclick="copyToClipboard('${finalShortLink}')">
-                                📋 Sao chép
-                            </button>
-                            <button class="btn-action btn-share" onclick="shareLink('${finalShortLink}', '${descInput || 'Xem link thú vị này'}')">
-                                🔗 Chia sẻ
-                            </button>
+                            <button class="btn-action btn-copy" onclick="copyToClipboard('${finalShortLink}')">📋 Sao chép</button>
+                            <button class="btn-action btn-share" onclick="shareLink('${finalShortLink}', '${descInput || 'Xem link thú vị này'}')">🔗 Chia sẻ</button>
                         </div>
                     `;
                     resultBox.style.display = "block";
                     
-                    // Reset form
                     document.getElementById('originalUrl').value = "";
                     document.getElementById('description').value = "";
                 } else {
@@ -149,53 +128,29 @@
             });
         }
 
-        // --- CÁC HÀM TIỆN ÍCH MỚI ---
-
-        // 1. Hàm sao chép vào bộ nhớ tạm
         function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast("📋 Đã sao chép link!");
-            }).catch(err => {
-                // Fallback cho trình duyệt cũ
+            navigator.clipboard.writeText(text).then(() => showToast("📋 Đã sao chép link!")).catch(() => {
                 const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand("copy");
-                document.body.removeChild(textArea);
+                textArea.value = text; document.body.appendChild(textArea); textArea.select();
+                document.execCommand("copy"); document.body.removeChild(textArea);
                 showToast("📋 Đã sao chép link!");
             });
         }
 
-        // 2. Hàm chia sẻ qua ứng dụng khác (Web Share API)
         function shareLink(url, text) {
             if (navigator.share) {
-                navigator.share({
-                    title: 'RitaLink',
-                    text: text,
-                    url: url
-                }).then(() => {
-                    showToast("✅ Đã mở trình chia sẻ!");
-                }).catch((error) => {
-                    console.log('Lỗi chia sẻ:', error);
-                });
+                navigator.share({ title: 'RitaLink', text: text, url: url }).catch(console.log);
             } else {
-                // Fallback: Nếu trình duyệt không hỗ trợ chia sẻ (ví dụ: Chrome trên PC), tự động copy
                 copyToClipboard(url);
                 showToast("💡 Trình duyệt không hỗ trợ chia sẻ, đã tự động sao chép!");
             }
         }
 
-        // 3. Hàm hiển thị thông báo nổi (Toast)
         function showToast(message) {
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.classList.add('show');
-            
-            // Ẩn toast sau 2.5 giây
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2500);
+            setTimeout(() => toast.classList.remove('show'), 2500);
         }
     </script>
 </body>
