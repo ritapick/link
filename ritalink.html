@@ -13,10 +13,23 @@
         button { width: 100%; padding: 12px; background-color: #1a73e8; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
         button:hover { background-color: #1557b0; }
         button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .result-box { margin-top: 20px; padding: 15px; background: #e8f0fe; border-radius: 6px; display: none; word-break: break-all; }
-        .result-box a { color: #1a73e8; font-weight: bold; text-decoration: none; }
-        .error { color: #d93025; margin-top: 10px; display: none; }
-        .loading { display: none; margin-top: 10px; color: #666; }
+        
+        /* CSS cho khu vực kết quả và các nút mới */
+        .result-box { margin-top: 20px; padding: 15px; background: #e8f0fe; border-radius: 8px; display: none; word-break: break-all; border: 1px solid #d2e3fc; }
+        .result-box a { color: #1a73e8; font-weight: bold; text-decoration: none; display: block; margin-bottom: 15px; }
+        .action-buttons { display: flex; gap: 10px; }
+        .btn-action { flex: 1; padding: 10px; font-size: 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 0; }
+        .btn-copy { background-color: #34a853; color: white; }
+        .btn-copy:hover { background-color: #2d8e47; }
+        .btn-share { background-color: #fbbc04; color: #333; }
+        .btn-share:hover { background-color: #e5ab00; }
+        
+        .error { color: #d93025; margin-top: 10px; display: none; font-size: 14px; }
+        .loading { display: none; margin-top: 10px; color: #666; font-size: 14px; }
+
+        /* Toast thông báo */
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #323232; color: white; padding: 12px 24px; border-radius: 25px; font-size: 14px; opacity: 0; transition: all 0.3s ease; pointer-events: none; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
 </head>
 <body>
@@ -24,6 +37,9 @@
     <div class="container" id="app">
         <!-- Nội dung sẽ được JavaScript tự động điền tùy theo chế độ -->
     </div>
+
+    <!-- Phần tử Toast thông báo ẩn -->
+    <div id="toast" class="toast"></div>
 
     <script>
         // ============================================================
@@ -44,10 +60,10 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === "success" && data.url) {
-                        app.innerHTML = `<p>Đang chuyển hướng đến đích...</p>`;
+                        app.innerHTML = `<h2>✅ Thành công</h2><p>Đang chuyển hướng đến đích...</p>`;
                         window.location.replace(data.url);
                     } else {
-                        app.innerHTML = `<h2 style="color:#d93025">Lỗi</h2><p>Không tìm thấy link rút gọn này.</p><a href="${BASE_URL}" style="color:#1a73e8">← Quay lại trang tạo link</a>`;
+                        app.innerHTML = `<h2 style="color:#d93025">Lỗi</h2><p>Không tìm thấy link rút gọn này.</p><a href="${BASE_URL}" style="color:#1a73e8; text-decoration: none; font-weight: bold;">← Quay lại trang tạo link</a>`;
                     }
                 })
                 .catch(err => {
@@ -60,11 +76,10 @@
                 <input type="url" id="originalUrl" placeholder="Dán link gốc vào đây (https://...)" required>
                 <textarea id="description" rows="2" placeholder="Mô tả ngắn gọn về link (tùy chọn)"></textarea>
                 <button id="submitBtn" onclick="createShortLink()">Tạo link rút gọn</button>
-                <p class="loading" id="loadingMsg">Đang xử lý...</p>
+                <p class="loading" id="loadingMsg">Đang xử lý, vui lòng chờ...</p>
                 <p class="error" id="errorMsg"></p>
                 <div class="result-box" id="resultBox">
-                    <p>✅ Tạo thành công! Link rút gọn của bạn:</p>
-                    <a id="shortLinkDisplay" href="#" target="_blank"></a>
+                    <!-- Nội dung kết quả sẽ được chèn vào đây -->
                 </div>
             `;
         }
@@ -90,7 +105,6 @@
             loading.style.display = "block";
 
             // Gửi yêu cầu POST đến Google Apps Script
-            // Lưu ý: Không đặt header 'Content-Type': 'application/json' để tránh lỗi CORS preflight của GAS
             fetch(GAS_WEB_APP_URL, {
                 method: "POST",
                 body: JSON.stringify({ url: urlInput, description: descInput })
@@ -102,8 +116,20 @@
 
                 if (data.status === "success") {
                     const finalShortLink = `${BASE_URL}?id=${data.code}`;
-                    document.getElementById('shortLinkDisplay').href = finalShortLink;
-                    document.getElementById('shortLinkDisplay').textContent = finalShortLink;
+                    
+                    // Hiển thị kết quả với 2 nút hành động
+                    resultBox.innerHTML = `
+                        <p style="margin-top:0; color:#188038; font-weight:bold;">✅ Tạo thành công!</p>
+                        <a id="shortLinkDisplay" href="${finalShortLink}" target="_blank">${finalShortLink}</a>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-copy" onclick="copyToClipboard('${finalShortLink}')">
+                                📋 Sao chép
+                            </button>
+                            <button class="btn-action btn-share" onclick="shareLink('${finalShortLink}', '${descInput || 'Xem link thú vị này'}')">
+                                🔗 Chia sẻ
+                            </button>
+                        </div>
+                    `;
                     resultBox.style.display = "block";
                     
                     // Reset form
@@ -121,6 +147,55 @@
                 error.style.display = "block";
                 console.error(err);
             });
+        }
+
+        // --- CÁC HÀM TIỆN ÍCH MỚI ---
+
+        // 1. Hàm sao chép vào bộ nhớ tạm
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("📋 Đã sao chép link!");
+            }).catch(err => {
+                // Fallback cho trình duyệt cũ
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("copy");
+                document.body.removeChild(textArea);
+                showToast("📋 Đã sao chép link!");
+            });
+        }
+
+        // 2. Hàm chia sẻ qua ứng dụng khác (Web Share API)
+        function shareLink(url, text) {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'RitaLink',
+                    text: text,
+                    url: url
+                }).then(() => {
+                    showToast("✅ Đã mở trình chia sẻ!");
+                }).catch((error) => {
+                    console.log('Lỗi chia sẻ:', error);
+                });
+            } else {
+                // Fallback: Nếu trình duyệt không hỗ trợ chia sẻ (ví dụ: Chrome trên PC), tự động copy
+                copyToClipboard(url);
+                showToast("💡 Trình duyệt không hỗ trợ chia sẻ, đã tự động sao chép!");
+            }
+        }
+
+        // 3. Hàm hiển thị thông báo nổi (Toast)
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            // Ẩn toast sau 2.5 giây
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
         }
     </script>
 </body>
